@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Information</title>
+</head>
+<body>
+    <h1>Result</h1>
+    <!-- Display the result -->
+    <div>{{ result }}</div>
+
+    <h2>Download the result as PDF</h2>
+
+    <!-- Button to download the result as a PDF -->
+    <form action="/download/" method="post">
+        <input type="hidden" name="result" value="{{ result }}">
+        <button type="submit">Download PDF</button>
+    </form>
+</body>
+</html>
