@@ -135,6 +135,7 @@ class YoutubeChannelManager:
         )
 
         result = crew.kickoff()
+
         print(result)
 
         #return result
