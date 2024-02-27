@@ -1,0 +1,9 @@
+langchain
+langchain_community
+crewai
+bs4
+pytrends
+os
+selenium
+pandas
+weasyprint
