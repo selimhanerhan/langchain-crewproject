@@ -66,7 +66,6 @@ class YoutubeChannelManager:
             name="Trend Data Finder",
             func=GoogleTrendsData.fetch_data,
             description="Useful for finding top and rising related queries based on the keyword. Rising related queries are improving their popularity, and Top related queries are popular already.",
-
         )
 
         duckSearch = DuckDuckGoSearchResults()
@@ -89,11 +88,13 @@ class YoutubeChannelManager:
             goal="Creating interesting titles for social media",
             backstory="An expert on working with social media influencers in google and youtube"
         )
+        
         agent3 = Agent(
             role="Youtube Channel Content Director",
             goal="Figuring out what topics would be interesting for your users.",
             backstory="An expert on working with social media influences and analyzer of Youtube SEO."
         )
+
         agent4 = Agent(
             role="Youtube Video Content Planner",
             goal="Creating an outline for the video from the title that is given, find the related information on the web by using your tool",
@@ -108,6 +109,7 @@ class YoutubeChannelManager:
                         "When you are picking the related queries, you need to find rising related queries that are not in the top related queries.",
             agent=agent
         )
+
         # need to update this
         youtube_content_suggestion_task = Task(
             description=f"Look at the topics in youtube channel with url this url {url}, "
@@ -116,16 +118,17 @@ class YoutubeChannelManager:
             agent=agent3,
             tools = [content_generator_tool]
         )
+
         title_generation_task = Task(
             description="Create a title that is interesting from the 10 related queries that you have from first task.",
             agent=agent2
         )
+
         outline_generation_task = Task(
             description="Create an outline for the potential topics that you want to share in your youtube channel,"
                         "suggestions of topics are the outputs of {agent3} and look at the web with your tool to create an outline"
                         "of what you can talk in your youtube video."
         )
-
 
         ## CREW
         crew = Crew(
@@ -141,7 +144,7 @@ class YoutubeChannelManager:
         #return result
 
 if __name__ == "__main__":
-    os.environ["OPENAI_API_KEY"] = ""
+    os.environ["OPENAI_API_KEY"] = "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"
 
     # os.environ["SERPAPI_API_KEY"] = ""
 

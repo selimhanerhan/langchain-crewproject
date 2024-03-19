@@ -49,7 +49,7 @@ class GoogleTrendsData:
                           axis=1, inplace=True)
 
         # Check your dataset
-        print(allqueries.head(100))
+        #print(allqueries.head(100))
         return allqueries
 
 

@@ -7,3 +7,4 @@ os
 selenium
 pandas
 weasyprint
+poetry
