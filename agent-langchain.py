@@ -26,7 +26,7 @@ from selenium.webdriver.common.by import By
 
 import google.generativeai as genai
 
-os.environ["GOOGLE_API_KEY"] = "AIzaSyAraQxg8Jg3o-iCGl9wstPvp-82N_13FFk"
+os.environ["GOOGLE_API_KEY"] = ""
 
 
 

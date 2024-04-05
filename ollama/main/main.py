@@ -1,6 +1,7 @@
-import sys
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
+import os
+os.environ["OPENAI_API_KEY"] = "NA"
 
 llm = ChatOpenAI(
     model = "crewai-llama2",

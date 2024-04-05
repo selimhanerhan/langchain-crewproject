@@ -7,14 +7,35 @@ from langchain_community.utilities.google_trends import GoogleTrendsAPIWrapper
 from langchain_openai import OpenAI
 from langchain.tools import DuckDuckGoSearchResults
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
-from crewai import Agent, Task, Crew
+from crewai import Agent, Task, Crew, Process
 
 from data import GoogleTrendsData
+from pydantic import BaseModel
 
 import pandas as pd
 import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+
+
+'''
+TO-DO
+JSON PARSER AGENT
+description doesn't seem to be working well, we need to find a way to parse everything into the json right away and not go through any analyze
+we can even have only one agent that creates the outline, title and parse it as json file to make it easier for the crew.
+
+trend_tool gave an error for the tool that is used
+
+
+
+'''
+
+# to be sure we need to make sure the schema of the desired json file
+class VideoOutlineOutput(BaseModel):
+    outline: str
+    suggested_topics: list
+
+
 
 
 
@@ -77,74 +98,110 @@ class YoutubeChannelManager:
 
 
         ## AGENTS
-        agent = Agent(
+        # this tool gave an error for the tool that is used
+        related_query_agent = Agent(
             role="Search Engine Optimizer",
             goal="Finding a related query based on the keyword",
             backstory="An expert on Search Engine Optimization which is basically analyzing the Google Trends",
-            tools = [trend_tool]
+            tools = [trend_tool],
+            llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7) # with the new update we need to specify the llm model we use otherwise it uses gpt4
         )
-        agent2 = Agent(
+        title_generator_agent = Agent(
             role="Writer and Digital Content Specialist",
             goal="Creating interesting titles for social media",
-            backstory="An expert on working with social media influencers in google and youtube"
+            backstory="An expert on working with social media influencers in google and youtube",
+            llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
         )
         
-        agent3 = Agent(
+        channel_content_agent = Agent(
             role="Youtube Channel Content Director",
             goal="Figuring out what topics would be interesting for your users.",
-            backstory="An expert on working with social media influences and analyzer of Youtube SEO."
+            backstory="An expert on working with social media influences and analyzer of Youtube SEO.",
+            llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
         )
 
-        agent4 = Agent(
+        video_outline_agent = Agent(
             role="Youtube Video Content Planner",
             goal="Creating an outline for the video from the title that is given, find the related information on the web by using your tool",
             backstory="An expert on Youtube Video Content Creation.",
             tools=[duck_tool],
+            llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
+        )
 
+        result_agent = Agent(
+            role="Youtube Video Creator",
+            goal="Creating a video for the given outline, title and other information about the topic",
+            backstory="An expert Director",
+            llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
         )
 
         ## TASKS
-        undiscovered_query_task = Task(
+        related_query_task = Task(
             description=f"Find 10 related queries for {topic} keyword. Pick the related queries from the tool that is given to you,"
                         "When you are picking the related queries, you need to find rising related queries that are not in the top related queries.",
-            agent=agent
+            agent=related_query_agent,
+            expected_output=f"10 Related queries for {topic} keyword."
         )
 
         # need to update this
-        youtube_content_suggestion_task = Task(
+        channel_content_task = Task(
             description=f"Look at the topics in youtube channel with url this url {url}, "
                         "you can use your tool for scraping the website, you also have the context for related queries which are potential topics"
-                        "from the 10 related queries, look at the potential topics from those queries that isn't published in the youtube channel so far.",
-            agent=agent3,
-            tools = [content_generator_tool]
+                        "from the 10 related queries, look at the potential topics from those queries that isn't published in the youtube channel so far and pick one topic from those.",
+            agent=channel_content_agent,
+            tools = [content_generator_tool],
+            context = [related_query_task],
+            expected_output="One potential topic for the youtube channel."
         )
 
         title_generation_task = Task(
             description="Create a title that is interesting from the 10 related queries that you have from first task.",
-            agent=agent2
+            agent=title_generator_agent,
+            context=[channel_content_task],
+            expected_output="Title that is interesting."
         )
 
-        outline_generation_task = Task(
+        video_outline_task = Task(
             description="Create an outline for the potential topics that you want to share in your youtube channel,"
-                        "suggestions of topics are the outputs of {agent3} and look at the web with your tool to create an outline"
-                        "of what you can talk in your youtube video."
+                        f"suggestions of topics are the outputs of {video_outline_agent} and look at the web with your tool to create an outline"
+                        "of what you can talk in your youtube video.",
+            agent=video_outline_agent,
+            context=[channel_content_task],
+            expected_output="Outline for the potential topics"
         )
+
+        # description doesn't seem to be working well, we need to find a way to parse everything into the json right away and not go through any analyze
+        # we can even have only one agent that creates the outline, title and parse it as json file to make it easier for the crew.
+        result_task = Task(
+            description="Create a video for the given topic that was passed to you as a context. "
+                        "when creating the video, spend same amount of time in each bullet point in the outline"
+                        " so the video length is evenly distributed among the topics in outline."
+                        " also parse the information as json in a way that was told to you.",
+            agent = result_agent,
+            context=[video_outline_task, title_generation_task],
+            output_json=VideoOutlineOutput,
+            expected_output="JSON File that shows outline of the video and potential topics of the video."
+        )
+
+
+
 
         ## CREW
         crew = Crew(
-            agents=[agent,agent2, agent3, agent4],
-            tasks=[undiscovered_query_task,title_generation_task, youtube_content_suggestion_task, outline_generation_task],
-            verbose=2
+            agents=[related_query_agent, channel_content_agent, title_generator_agent,video_outline_agent, result_agent],
+            tasks=[related_query_task,channel_content_task, title_generation_task, video_outline_task, result_task],
+            verbose=2,
+            process = Process.sequential # this ensures that tasks are executed one after each other
         )
 
         result = crew.kickoff()
 
-        print(result)
+        return result
 
         #return result
 
 if __name__ == "__main__":
-    os.environ["OPENAI_API_KEY"] = "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"
+    os.environ["OPENAI_API_KEY"] = ""
 
     # os.environ["SERPAPI_API_KEY"] = ""
 
