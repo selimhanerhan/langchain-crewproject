@@ -6,13 +6,13 @@ from langchain_community.tools.google_trends import GoogleTrendsQueryRun
 from langchain_community.utilities.google_trends import GoogleTrendsAPIWrapper
 from langchain_openai import OpenAI
 from langchain_community.tools import DuckDuckGoSearchResults
-from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
+from langchain_community.utilities import DuckDuckGoSearchAPIWrapper, SearchApiAPIWrapper
 
 from crewai import Agent, Task, Crew, Process
 
-
+from typing import List
 from data import GoogleTrendsData
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import pandas as pd
 import os
@@ -32,10 +32,13 @@ need to find a way to download the output as json file as well
 '''
 
 # to be sure we need to make sure the schema of the desired json file
-class VideoOutlineOutput(BaseModel):
-    outline: str
-    suggested_topics: list
+class OutlineItem(BaseModel):
+    content: str = Field(description="content of the bullet point")
+    time_allocated: str = Field(description="Time allocated for each bullet point")
 
+class VideoOutlineOutput(BaseModel):
+    outline: List[OutlineItem] = Field(description="Outline of the video, each bullet point is an item in the list")
+    title: str = Field(description="title of the video")
 
 
 
@@ -92,11 +95,18 @@ class YoutubeChannelManager:
         #     description="Useful for finding top and rising related queries based on the keyword. Rising related queries are improving their popularity, and Top related queries are popular already.",
         # )
 
-        duckSearch = DuckDuckGoSearchResults()
+        # duckSearch = DuckDuckGoSearchResults()
+        #
+        # duck_tool = Tool(
+        #     name="DuckDuckSearch",
+        #     description="Search the web for finding informations about the given topic to create an outline.",
+        #     func = duckSearch.run,
+        # )
+        search = SearchApiAPIWrapper()
         duck_tool = Tool(
-            name="DuckDuckSearch",
-            description="Search the web for finding informations about the given topic to create an outline.",
-            func = duckSearch.run,
+            name="Search",
+            description="Search the web for finding informations about the given topic.",
+            func=search.run
         )
 
         google_trend_tool = GoogleTrendsQueryRun(api_wrapper=GoogleTrendsAPIWrapper())
@@ -119,7 +129,7 @@ class YoutubeChannelManager:
 
         content_creation_agent = Agent(
             role="Youtube Content Creation Manager",
-            goal="Creating interesting titles and outlines by using the tool that is given to find related information on the web",
+            goal="Creating interesting titles and outlines by using the tool that is given to find related information on the web.",
             backstory="An expert on Youtube Video Content Creation",
             tools=[duck_tool],
             llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
@@ -128,7 +138,7 @@ class YoutubeChannelManager:
 
         result_agent = Agent(
             role="Youtube Video Creator",
-            goal="Creating a video for the given outline, title and other information about the topic",
+            goal="Creating a JSON file for video for the given outline, title and other information about the topic",
             backstory="An expert Director",
             llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
         )
@@ -149,16 +159,16 @@ class YoutubeChannelManager:
             agent=content_decider_agent,
             tools = [content_generator_tool],
             context = [related_query_task],
-            expected_output="One potential topic for the youtube channel."
+            expected_output="One potential topic for the youtube channel that wasn't in the youtube channel before."
         )
 
 
         content_creation_task = Task(
             description = "Create a title and the outline that is interesting for the topic that you have as context. "
-                          "When creating the outline use the tool that is given to you to find the related information on the web.",
+                          "When creating the outline use the tool that is given to you to find the related information on the web. ",
             agent = content_creation_agent,
             context = [content_decider_task],
-            expected_output = "Outline and title for potential topics."
+            expected_output = "Video outline and the bullet points for the video."
         )
 
 
@@ -168,12 +178,13 @@ class YoutubeChannelManager:
         result_task = Task(
             description="Create a video for the given title and outline that was passed to you as a context. "
                         "when creating the video, spend same amount of time in each bullet point in the outline"
-                        " so the video length is evenly distributed among the topics in outline."
-                        " also parse the information as json in a way that was told to you.",
+                        " when outputing as json follow the format in BaseModel "
+                        " ,the video length is evenly distributed among the topics in outline."
+                        ,
             agent = result_agent,
             context=[content_creation_task],
             output_json=VideoOutlineOutput,
-            expected_output="JSON File that shows outline of the video and potential topics of the video."
+            expected_output=f"JSON File that follows the formula of {VideoOutlineOutput}"
         )
 
 
@@ -192,7 +203,7 @@ class YoutubeChannelManager:
 
 if __name__ == "__main__":
     os.environ["OPENAI_API_KEY"] = ""
-
+    os.environ["SEARCHAPI_API_KEY"] = ""
     os.environ["SERPAPI_API_KEY"] = ""
 
     manager = YoutubeChannelManager()
