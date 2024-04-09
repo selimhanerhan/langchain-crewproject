@@ -10,6 +10,8 @@ from langchain_community.utilities import DuckDuckGoSearchAPIWrapper, SearchApiA
 
 from crewai import Agent, Task, Crew, Process
 
+#import openai
+
 from typing import List
 from data import GoogleTrendsData
 from pydantic import BaseModel, Field
@@ -19,6 +21,7 @@ import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+import json
 
 
 
@@ -26,8 +29,12 @@ from selenium.webdriver.common.by import By
 TO-DO
 JSON PARSER AGENT
 
-need to find what json schema is working well with shortgpt
-need to find a way to download the output as json file as well
+these are the parameters for shortgpt 
+title = engine.generate_title(script)
+description = engine.description(script)
+oneKeyword = engine.extract_one_keyword(keywords)
+#final = engine.extract_quoted_keyword(oneKeyword)
+image = engine.generate_image_from_keyword(oneKeyword)
 
 '''
 
@@ -200,6 +207,16 @@ class YoutubeChannelManager:
 
         return result
 
+    def save_json(self, topic, url):
+        result = self.run_crew(topic, url)
+        script_dir = os.path.dirname(__file__)
+        json_file_path = os.path.join(script_dir, 'result.json')
+
+        with open(json_file_path, 'w') as json_file:
+            json.dump(result, json_file, indent=4)
+
+        return result
+
 
 if __name__ == "__main__":
     os.environ["OPENAI_API_KEY"] = ""
@@ -209,4 +226,6 @@ if __name__ == "__main__":
     manager = YoutubeChannelManager()
     topic = "langchain"
     url = "https://www.youtube.com/@LangChain/videos"
-    manager.run_crew(topic, url)
+    #manager.run_crew(topic, url)
+
+    manager.save_json(topic, url)
