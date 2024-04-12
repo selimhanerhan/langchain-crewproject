@@ -27,27 +27,9 @@ import json
 
 '''
 TO-DO
-JSON PARSER AGENT
 
-these are the parameters for shortgpt 
-title = engine.generate_title(script)
-description = engine.description(script)
-oneKeyword = engine.extract_one_keyword(keywords)
-#final = engine.extract_quoted_keyword(oneKeyword)
-image = engine.generate_image_from_keyword(oneKeyword)
 
 '''
-
-# to be sure we need to make sure the schema of the desired json file
-class OutlineItem(BaseModel):
-    content: str = Field(description="content of the bullet point")
-    time_allocated: str = Field(description="Time allocated for each bullet point")
-
-class VideoOutlineOutput(BaseModel):
-    outline: List[OutlineItem] = Field(description="Outline of the video, each bullet point is an item in the list")
-    title: str = Field(description="title of the video")
-
-
 
 
 
@@ -142,7 +124,6 @@ class YoutubeChannelManager:
             llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
         )
 
-
         result_agent = Agent(
             role="Youtube Video Creator",
             goal="Creating a JSON file for video for the given outline, title and other information about the topic",
@@ -169,7 +150,6 @@ class YoutubeChannelManager:
             expected_output="One potential topic for the youtube channel that wasn't in the youtube channel before."
         )
 
-
         content_creation_task = Task(
             description = "Create a title and the outline that is interesting for the topic that you have as context. "
                           "When creating the outline use the tool that is given to you to find the related information on the web. ",
@@ -183,15 +163,13 @@ class YoutubeChannelManager:
         # description doesn't seem to be working well, we need to find a way to parse everything into the json right away and not go through any analyze
         # we can even have only one agent that creates the outline, title and parse it as json file to make it easier for the crew.
         result_task = Task(
-            description="Create a video for the given title and outline that was passed to you as a context. "
+            description="Create a script for the video for the given title and outline that was passed to you as a context. "
                         "when creating the video, spend same amount of time in each bullet point in the outline"
-                        " when outputing as json follow the format in BaseModel "
-                        " ,the video length is evenly distributed among the topics in outline."
+                        " when outputing the script the video length is evenly distributed among the topics in outline."
                         ,
             agent = result_agent,
             context=[content_creation_task],
-            output_json=VideoOutlineOutput,
-            expected_output=f"JSON File that follows the formula of {VideoOutlineOutput}"
+            expected_output="Script in one paragraph for desired video."
         )
 
 
@@ -203,29 +181,21 @@ class YoutubeChannelManager:
             process = Process.sequential # this ensures that tasks are executed one after each other
         )
 
+
         result = crew.kickoff()
-
+        self.save_txt(result, "script")
         return result
 
-    def save_json(self, topic, url):
-        result = self.run_crew(topic, url)
-        script_dir = os.path.dirname(__file__)
-        json_file_path = os.path.join(script_dir, 'result.json')
-
-        with open(json_file_path, 'w') as json_file:
-            json.dump(result, json_file, indent=4)
-
-        return result
-
+    def save_txt(self, output, filename):
+        with open(filename, "w") as txt_file:
+            txt_file.write(output)
 
 if __name__ == "__main__":
-    os.environ["OPENAI_API_KEY"] = ""
-    os.environ["SEARCHAPI_API_KEY"] = ""
-    os.environ["SERPAPI_API_KEY"] = ""
+    os.environ["OPENAI_API_KEY"] = "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"
+    os.environ["SEARCHAPI_API_KEY"] = "99Nkh5APX9Noy8n8FShEiKHS"
+    os.environ["SERPAPI_API_KEY"] = "e96e3604dbca75b4b2240f7b8cfaa4b643192c01f3540aff012f78e62de49401"
 
     manager = YoutubeChannelManager()
     topic = "langchain"
     url = "https://www.youtube.com/@LangChain/videos"
-    #manager.run_crew(topic, url)
-
-    manager.save_json(topic, url)
+    manager.run_crew(topic, url)
