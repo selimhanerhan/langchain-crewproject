@@ -191,9 +191,9 @@ class YoutubeChannelManager:
             txt_file.write(output)
 
 if __name__ == "__main__":
-    os.environ["OPENAI_API_KEY"] = "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"
-    os.environ["SEARCHAPI_API_KEY"] = "99Nkh5APX9Noy8n8FShEiKHS"
-    os.environ["SERPAPI_API_KEY"] = "e96e3604dbca75b4b2240f7b8cfaa4b643192c01f3540aff012f78e62de49401"
+    os.environ["OPENAI_API_KEY"] = ""
+    os.environ["SEARCHAPI_API_KEY"] = ""
+    os.environ["SERPAPI_API_KEY"] = ""
 
     manager = YoutubeChannelManager()
     topic = "langchain"

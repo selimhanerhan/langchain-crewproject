@@ -57,9 +57,9 @@ class ContentVideoEnginee:
         return file_contents
 
 if __name__ == "__main__":
-    ApiKeyManager.set_api_key(ApiProvider.OPENAI, "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")
-    ApiKeyManager.set_api_key(ApiProvider.ELEVEN_LABS, "dcb61dd570227adc95918678fc206cd5")
-    ApiKeyManager.set_api_key(ApiProvider.PEXELS, "DbRgPIhtiY7uyeD1UGVm7LROc7HAlNAfiBwqhdQuUE6ZerbnnFoA8HGJ")
+    ApiKeyManager.set_api_key(ApiProvider.OPENAI, "")
+    ApiKeyManager.set_api_key(ApiProvider.ELEVEN_LABS, "")
+    ApiKeyManager.set_api_key(ApiProvider.PEXELS, "")
 
     engine = ContentVideoEnginee()
     #script = engine.read_txt_file("script")
